@@ -12,13 +12,16 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -98,10 +101,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public boolean onMyLocationButtonClick() {
                 //透過位置服務，取得目前裝置所在
-                gpsLocation();
+                //gpsLocation();
+                //若需要持續更新目前位置、存取更多資料時，改使用Location API 取得位置
+                fuseLocation();
                 return false;
             }
         });
+    }
+
+    //若需要持續更新目前位置、存取更多資料時，改使用Location API 取得位置
+    @SuppressLint("MissingPermission")
+    private void fuseLocation() {
+        //首先，先取得FusedLocationProviderClient物件
+        FusedLocationProviderClient client =
+                LocationServices.getFusedLocationProviderClient(this);
+        //再呼叫它的getLastLocation()方法取得目前位置，只是，
+        //它是非同步呼叫(A synchronized)，所以需要再指派完成工作的傾聽介面
+        client.getLastLocation().addOnCompleteListener(
+                this, new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        //完成呼叫時，應先判斷工作是否成功，若成功，
+                        //再取得Location物件後，將地圖移到該位置(Location)
+                        if (task.isSuccessful()){
+                            Location location = task.getResult();
+                            if (location != null){
+                                setMapAnimateCamera(location);
+                            }
+
+                        }
+                    }
+                });
     }
 
     @SuppressLint("MissingPermission")
@@ -122,11 +152,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Location location = locationManager.getLastKnownLocation(provider);
         if (location != null){
-            Log.i("LOCATION", location.getLatitude() + "/"
-                    + location.getLongitude());
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                    new LatLng(location.getLatitude(),
-                                location.getLongitude()), 15));
+            setMapAnimateCamera(location);
         }
     }
+
+    private void setMapAnimateCamera(Location location) {
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                new LatLng(location.getLatitude(),
+                        location.getLongitude()),15));
+
+        Log.i("LOCATION", location.getLatitude() + "/"
+                + location.getLongitude());
+    }
+
 }
