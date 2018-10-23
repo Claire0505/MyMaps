@@ -10,7 +10,12 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
@@ -19,7 +24,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -69,12 +76,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             setupMyLocation();
             //GPS變動時的位置請求權
             createLocationRequest();
+
+            //自定義InfoWindow
+            mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                @Override
+                public View getInfoWindow(Marker marker) {
+                    return null;
+                }
+
+                @Override
+                public View getInfoContents(Marker marker) {
+                    View view = getLayoutInflater().inflate(R.layout.info_window, null  );
+                    TextView title = view.findViewById(R.id.info_title);
+                    title.setText("Title:" + marker.getTitle());
+                    TextView snippet = view.findViewById(R.id.info_snippet);
+                    snippet.setText("說明:" + marker.getSnippet());
+                    return view;
+                }
+            });
+
+            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(Marker marker) {
+                    new AlertDialog.Builder(MapsActivity.this)
+                            .setTitle(marker.getTitle())
+                            .setMessage(marker.getSnippet())
+                            .setPositiveButton("ok", null)
+                            .show();
+                    return true;
+                }
+            });
         }
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        //台北101的位置
+        LatLng taipei101 = new LatLng(25.033408,121.564099);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(taipei101, 15));
+        Marker marker = mMap.addMarker(new MarkerOptions()
+                .position(taipei101)
+                .title("101")
+                .snippet("這是台北101"));
+        marker.showInfoWindow();
+
     }
 
     //GPS變動時的位置請求權
@@ -100,8 +142,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //可以加入忽略提醒的註解
                     //使用者允許權限
                     setupMyLocation();
+
                 }else {
                     //使用者拒絕授權，停用MyLocation功能
+                    mMap.setMyLocationEnabled(false);
+                    Toast.makeText(this, "拒絕授權，無法啟用定位功能", Toast.LENGTH_SHORT).show();
                 }
                 break;
         }
@@ -123,6 +168,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
+
     }
 
     //若需要持續更新目前位置、存取更多資料時，改使用Location API 取得位置
