@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -24,7 +25,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-
+    //位置請求設置
+    LocationRequest locationRequest;
     private static final int REQUEST_LOCATION = 2;
     private GoogleMap mMap;
 
@@ -65,12 +67,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     REQUEST_LOCATION);
         } else {
             setupMyLocation();
+            //GPS變動時的位置請求權
+            createLocationRequest();
         }
 
         // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(-34, 151);
         mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+    }
+
+    //GPS變動時的位置請求權
+    private void createLocationRequest() {
+        //產生位置請求設置物件locationRequest
+        locationRequest = new LocationRequest();
+        //設定更新時間為5000毫秒
+        locationRequest.setInterval(5000);
+        //設定最短間隔為2000毫秒
+        locationRequest.setFastestInterval(2000);
+        //設定為高準度優先
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
     //接著覆寫onRequestPermissionsResult方法，判斷使用者是否允許權限
